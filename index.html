@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>open-web-video-player - 测试页面</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      color: white;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2.5rem;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .player-wrapper {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      margin-bottom: 30px;
+    }
+
+    #videoContainer {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .owvp-container,
+    .owvp-video-wrapper {
+      width: 100%;
+      height: 100%;
+    }
+
+    .owvp-native-video,
+    .owvp-wasm-canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .controls {
+      margin-top: 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    label {
+      font-weight: 600;
+      color: #333;
+      font-size: 0.9rem;
+    }
+
+    input[type="text"],
+    select {
+      padding: 10px 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.3s;
+    }
+
+    input[type="text"]:focus,
+    select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      flex: 1;
+      min-width: 100px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      color: white;
+    }
+
+    .btn-success:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(17, 153, 142, 0.4);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+      color: white;
+    }
+
+    .btn-danger:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(235, 51, 73, 0.4);
+    }
+
+    .status {
+      margin-top: 15px;
+      padding: 12px 15px;
+      border-radius: 8px;
+      font-weight: 600;
+      display: none;
+    }
+
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      display: block;
+    }
+
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+      display: block;
+    }
+
+    .status.info {
+      background: #d1ecf1;
+      color: #0c5460;
+      display: block;
+    }
+
+    .loading-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      pointer-events: none;
+      transition: opacity 0.5s;
+    }
+    .loading-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .loading-overlay.hidden .loading-box {
+      pointer-events: none;
+    }
+    .loading-box {
+      pointer-events: none;
+    }
+    .loading-box {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      text-align: center;
+      min-width: 320px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .loading-box h2 {
+      margin-bottom: 10px;
+      color: #333;
+    }
+    .loading-box p {
+      color: #666;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+    }
+    .progress-bar-track {
+      width: 100%;
+      height: 12px;
+      background: #e0e0e0;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      border-radius: 6px;
+      transition: width 0.3s;
+    }
+    .progress-text {
+      font-size: 0.85rem;
+      color: #888;
+      font-family: monospace;
+    }
+
+    .log-panel {
+      background: #1a1a2e;
+      color: #00ff88;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-top: 15px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.8rem;
+      max-height: 200px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .log-panel.active {
+      display: block;
+    }
+
+    .log-panel .log-entry {
+      padding: 2px 0;
+      line-height: 1.5;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .log-panel .log-entry:last-child {
+      border-bottom: none;
+    }
+
+    .log-panel .log-time {
+      color: #888;
+      margin-right: 8px;
+    }
+
+    .log-panel .log-level {
+      display: inline-block;
+      padding: 0 6px;
+      border-radius: 3px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      margin-right: 6px;
+    }
+
+    .log-panel .log-level.info { background: #0d7377; color: #fff; }
+    .log-panel .log-level.warn { background: #b8860b; color: #fff; }
+    .log-panel .log-level.error { background: #a83232; color: #fff; }
+  </style>
+</head>
+<body>
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-box">
+      <h2>正在下载解码器</h2>
+      <p>首次加载需要下载约 31MB 的 ffmpeg.wasm 解码器，之后会缓存到本地。</p>
+      <div class="progress-bar-track">
+        <div id="progressBarFill" class="progress-bar-fill"></div>
+      </div>
+      <div id="progressText" class="progress-text">0% (0 MB / 31 MB)</div>
+    </div>
+  </div>
+
+  <div class="container">
+    <h1>open-web-video-player 测试页面</h1>
+
+    <div class="player-wrapper">
+      <div id="videoContainer"></div>
+
+      <div class="controls">
+        <div class="control-group">
+          <label for="streamType">流格式</label>
+          <select id="streamType">
+            <option value="hls">HLS (.m3u8)</option>
+            <option value="flv">HTTP-FLV (.flv)</option>
+            <option value="webrtc">WebRTC</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="streamUrl">流地址</label>
+          <input type="text" id="streamUrl" placeholder="输入流地址..." />
+        </div>
+
+        <div class="control-group">
+          <label>操作</label>
+          <div class="button-group">
+            <button class="btn-primary" id="loadBtn">播放</button>
+            <button class="btn-danger" id="pauseBtn">暂停</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="status" class="status"></div>
+      <div id="logPanel" class="log-panel"></div>
+    </div>
+
+  </div>
+
+  <script type="module">
+    import { Player, preloadProgress } from './src/index.ts';
+
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const progressBarFill = document.getElementById('progressBarFill');
+    const progressText = document.getElementById('progressText');
+
+    function formatSize(bytes) {
+      return (bytes / (1024 * 1024)).toFixed(1);
+    }
+
+    function updateProgress() {
+      const { loaded, total } = preloadProgress;
+      if (total > 0) {
+        const pct = Math.min(100, (loaded / total) * 100);
+        progressBarFill.style.width = pct + '%';
+        progressText.textContent = pct.toFixed(0) + '% (' + formatSize(loaded) + ' MB / ' + formatSize(total) + ' MB)';
+      }
+      if (total > 0 && loaded >= total) {
+        loadingOverlay.classList.add('hidden');
+        clearInterval(pollInterval);
+      }
+      if (total === 0 && loaded === 0) {
+        progressText.textContent = '正在连接...';
+      }
+    }
+
+    const pollInterval = setInterval(updateProgress, 200);
+    updateProgress();
+
+    setTimeout(function () {
+      loadingOverlay.classList.add('hidden');
+    }, 15000);
+
+    let player = null;
+    const videoContainer = document.getElementById('videoContainer');
+    const streamType = document.getElementById('streamType');
+    const streamUrl = document.getElementById('streamUrl');
+    const loadBtn = document.getElementById('loadBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const status = document.getElementById('status');
+
+    function showStatus(message, type) {
+      if (type === undefined) type = 'info';
+      status.style.display = '';
+      status.textContent = message;
+      status.className = 'status ' + type;
+      if (type !== 'error') {
+        setTimeout(function () {
+          status.style.display = 'none';
+        }, 4000);
+      }
+    }
+
+    function initPlayer() {
+      if (player) {
+        player.destroy();
+      }
+      player = new Player({
+        container: videoContainer,
+        autoPlay: true,
+        showControls: true,
+      });
+
+      player.on('load', function (data) {
+        var codecLabel = data.codec === 'h265' ? 'H.265' : 'H.264';
+        var rendererLabel = data.codec === 'h265' ? 'ffmpeg.wasm' : 'Native';
+        showStatus('成功加载 ' + data.type + ' 流 | ' + codecLabel + ' | ' + rendererLabel, 'success');
+      });
+
+      player.on('play', function () {
+        showStatus('开始播放', 'info');
+      });
+
+      player.on('pause', function () {
+        showStatus('暂停播放', 'info');
+      });
+
+      player.on('error', function (error) {
+        showStatus('错误: ' + error, 'error');
+      });
+    }
+
+    loadBtn.addEventListener('click', async function () {
+      var url = streamUrl.value.trim();
+      var type = streamType.value;
+
+      if (!url) {
+        showStatus('请输入流地址', 'error');
+        return;
+      }
+
+      try {
+        initPlayer();
+        showStatus('正在加载...', 'info');
+        await player.load(url, { type: type });
+      } catch (error) {
+        showStatus('加载失败: ' + error.message, 'error');
+        console.error(error);
+      }
+    });
+
+    pauseBtn.addEventListener('click', function () {
+      if (player) {
+        player.pause();
+      } else {
+        showStatus('请先加载流', 'error');
+      }
+    });
+
+    streamUrl.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        loadBtn.click();
+      }
+    });
+
+    var logPanel = document.getElementById('logPanel');
+    var _consoleLog = console.log;
+    var _consoleWarn = console.warn;
+    var _consoleError = console.error;
+
+    function addLog(message, level) {
+      if (level === undefined) level = 'info';
+      if (!logPanel) return;
+      logPanel.classList.add('active');
+      var entry = document.createElement('div');
+      entry.className = 'log-entry';
+      var time = new Date().toLocaleTimeString();
+      entry.innerHTML = '<span class="log-time">' + time + '</span><span class="log-level ' + level + '">' + level.toUpperCase() + '</span>' + escapeHtml(message);
+      logPanel.appendChild(entry);
+      logPanel.scrollTop = logPanel.scrollHeight;
+    }
+
+    function escapeHtml(str) {
+      var div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    console.log = function () {
+      _consoleLog.apply(console, arguments);
+      var args = Array.prototype.slice.call(arguments);
+      var msg = args.map(function (a) { return typeof a === 'object' ? JSON.stringify(a) : String(a); }).join(' ');
+      if (msg.indexOf('[ffmpeg.wasm]') !== -1) {
+        addLog(msg.replace('[ffmpeg.wasm] ', ''), 'info');
+      }
+    };
+
+    console.warn = function () {
+      _consoleWarn.apply(console, arguments);
+      var args = Array.prototype.slice.call(arguments);
+      var msg = args.map(function (a) { return typeof a === 'object' ? JSON.stringify(a) : String(a); }).join(' ');
+      if (msg.indexOf('[ffmpeg.wasm]') !== -1) {
+        addLog(msg.replace('[ffmpeg.wasm] ', ''), 'warn');
+      }
+    };
+
+    console.error = function () {
+      _consoleError.apply(console, arguments);
+      var args = Array.prototype.slice.call(arguments);
+      var msg = args.map(function (a) { return typeof a === 'object' ? JSON.stringify(a) : String(a); }).join(' ');
+      if (msg.indexOf('[ffmpeg.wasm]') !== -1) {
+        addLog(msg.replace('[ffmpeg.wasm] ', ''), 'error');
+      }
+    };
+
+    _consoleLog('open-web-video-player 测试页面已加载');
+    showStatus('页面已就绪，请选择或输入流地址', 'info');
+  </script>
+</body>
+</html>
